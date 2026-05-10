@@ -70,6 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
           SliverToBoxAdapter(child: _profileInfo()),
           SliverToBoxAdapter(child: _statsBar()),
+          SliverToBoxAdapter(child: _walletBanner()),
           SliverToBoxAdapter(child: _actionButtons()),
           SliverToBoxAdapter(child: _achievementBadges()),
           SliverPersistentHeader(
@@ -94,18 +95,52 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Cover
+        // Cover gradient background
         Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF1A1A2E), Color(0xFF0D1A0D)],
+              colors: [Color(0xFF1A1A2E), Color(0xFF0D1517), Color(0xFF0D0D0D)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
-          child: const Center(
-            child: Icon(Icons.landscape_rounded,
-                color: AppColors.borderSubtle, size: 60),
+        ),
+        // Subtle grid pattern overlay
+        Positioned.fill(
+          child: CustomPaint(painter: _GridPatternPainter()),
+        ),
+        // Gold glow at top
+        Positioned(
+          top: -60,
+          left: -40,
+          child: Container(
+            width: 200,
+            height: 200,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  AppColors.gold.withOpacity(0.08),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Bottom fade to bgBase
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 60,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.transparent, AppColors.bgBase.withOpacity(0.6)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
           ),
         ),
         // Avatar
@@ -239,6 +274,75 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  Widget _walletBanner() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.gold.withOpacity(0.12),
+            AppColors.bgCard,
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gold.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.gold.withOpacity(0.12),
+              border: Border.all(color: AppColors.gold.withOpacity(0.3)),
+            ),
+            child: const Icon(Icons.toll_rounded,
+                color: AppColors.gold, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '4,820 MF Coins',
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.gold,
+                ),
+              ),
+              Text(
+                'Wallet connected · Earning rewards',
+                style: GoogleFonts.inter(
+                    fontSize: 11, color: AppColors.textMuted),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.gold.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Top Up',
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.gold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _actionButtons() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -249,28 +353,40 @@ class _ProfileScreenState extends State<ProfileScreen>
               height: 40,
               child: ElevatedButton.icon(
                 onPressed: () {},
-                icon: const Icon(Icons.edit_rounded, size: 16),
+                icon: const Icon(Icons.edit_rounded, size: 15),
                 label: Text(
                   'Edit Profile',
                   style: GoogleFonts.inter(
                       fontSize: 13, fontWeight: FontWeight.w600),
                 ),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size.zero,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          Container(
-            height: 40,
-            width: 40,
-            decoration: BoxDecoration(
-              color: AppColors.bgCard,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.borderSubtle),
-            ),
-            child: const Icon(Icons.share_outlined,
-                color: AppColors.textSecondary, size: 18),
-          ),
+          const SizedBox(width: 8),
+          _iconBtn(Icons.qr_code_rounded, () {}),
+          const SizedBox(width: 8),
+          _iconBtn(Icons.share_outlined, () {}),
         ],
+      ),
+    );
+  }
+
+  Widget _iconBtn(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 40,
+        width: 40,
+        decoration: BoxDecoration(
+          color: AppColors.bgCard,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.borderSubtle),
+        ),
+        child: Icon(icon, color: AppColors.textSecondary, size: 18),
       ),
     );
   }
@@ -417,6 +533,25 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
     );
   }
+}
+
+class _GridPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0x08FFFFFF)
+      ..strokeWidth = 0.5;
+    const spacing = 28.0;
+    for (double x = 0; x < size.width; x += spacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y < size.height; y += spacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GridPatternPainter old) => false;
 }
 
 class _TabBarDelegate extends SliverPersistentHeaderDelegate {

@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen>
   late final WebViewController _controller;
   bool _isLoading = true;
   double _progress = 0;
-  bool _useNative = true; // show native demo feed
+  bool _useNative = false; // false = WebView (actual website), true = native AI feed
 
   int _feedTab = 0; // 0=ForYou, 1=Following
 
@@ -151,10 +151,47 @@ class _HomeScreenState extends State<HomeScreen>
             ],
           ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.search_rounded,
-                  color: AppColors.textPrimary, size: 22),
-              onPressed: () {},
+            // Web / AI Feed toggle
+            GestureDetector(
+              onTap: () => setState(() => _useNative = !_useNative),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.only(right: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _useNative
+                      ? AppColors.blue.withOpacity(0.15)
+                      : AppColors.gold.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: _useNative
+                        ? AppColors.blue.withOpacity(0.4)
+                        : AppColors.gold.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _useNative
+                          ? Icons.auto_awesome_rounded
+                          : Icons.language_rounded,
+                      size: 14,
+                      color: _useNative ? AppColors.blue : AppColors.gold,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      _useNative ? 'AI Feed' : 'Website',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _useNative ? AppColors.blue : AppColors.gold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
             Stack(
               children: [
@@ -314,8 +351,8 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
 
-        // Bottom padding for nav bar
-        const SliverToBoxAdapter(child: SizedBox(height: 80)),
+        // Bottom padding for nav bar (accounts for frosted nav bar height)
+        const SliverToBoxAdapter(child: SizedBox(height: 100)),
       ],
     );
   }

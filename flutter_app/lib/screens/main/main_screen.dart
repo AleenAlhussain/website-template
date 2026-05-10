@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -81,6 +82,7 @@ class _MainScreenState extends State<MainScreen> {
       },
       child: Scaffold(
         backgroundColor: AppColors.bgBase,
+        extendBody: true,
         body: IndexedStack(
           index: _currentIndex == 2 ? 0 : _currentIndex,
           children: _screens,
@@ -118,26 +120,33 @@ class _MFBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 83,
-      decoration: const BoxDecoration(
-        color: AppColors.bgBase,
-        border: Border(
-          top: BorderSide(color: AppColors.borderSubtle, width: 0.5),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            _tab(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
-            _tab(1, Icons.explore_rounded, Icons.explore_outlined, 'Explore'),
-            _fabTab(),
-            _tab(3, Icons.notifications_rounded,
-                Icons.notifications_outlined, 'Alerts',
-                badge: 3),
-            _tab(4, Icons.person_rounded, Icons.person_outlined, 'Profile'),
-          ],
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.bgBase.withOpacity(0.88),
+            border: const Border(
+              top: BorderSide(color: AppColors.borderSubtle, width: 0.5),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              height: 56,
+              child: Row(
+                children: [
+                  _tab(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
+                  _tab(1, Icons.explore_rounded, Icons.explore_outlined, 'Explore'),
+                  _fabTab(),
+                  _tab(3, Icons.notifications_rounded,
+                      Icons.notifications_outlined, 'Alerts',
+                      badge: 3),
+                  _tab(4, Icons.person_rounded, Icons.person_outlined, 'Profile'),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -221,30 +230,31 @@ class _MFBottomNav extends StatelessWidget {
       child: GestureDetector(
         onTap: () => onTap(2),
         behavior: HitTestBehavior.opaque,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.gold,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.gold.withOpacity(0.4),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+        child: Center(
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [AppColors.gold, Color(0xFFE07800)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: const Icon(
-                Icons.add_rounded,
-                color: AppColors.textInverse,
-                size: 26,
-              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.gold.withOpacity(0.35),
+                  blurRadius: 14,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-          ],
+            child: const Icon(
+              Icons.add_rounded,
+              color: AppColors.textInverse,
+              size: 24,
+            ),
+          ),
         ),
       ),
     );
