@@ -46,16 +46,21 @@ class _PostCardState extends State<PostCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.bgBase,
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderSubtle, width: 0.8),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
+                // Header row
                 Row(
                   children: [
                     _avatar(),
@@ -66,12 +71,15 @@ class _PostCardState extends State<PostCard> {
                         children: [
                           Row(
                             children: [
-                              Text(
-                                widget.authorName,
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
+                              Flexible(
+                                child: Text(
+                                  widget.authorName,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               if (widget.isVerified) ...[
@@ -108,17 +116,17 @@ class _PostCardState extends State<PostCard> {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     color: AppColors.textPrimary,
-                    height: 1.5,
+                    height: 1.55,
                   ),
-                  maxLines: 4,
+                  maxLines: 5,
                   overflow: TextOverflow.ellipsis,
                 ),
 
-                // Image
+                // Image placeholder
                 if (widget.imageUrl != null) ...[
                   const SizedBox(height: 10),
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     child: AspectRatio(
                       aspectRatio: 16 / 9,
                       child: Container(
@@ -139,21 +147,21 @@ class _PostCardState extends State<PostCard> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: AppColors.blue.withOpacity(0.1),
+                      color: AppColors.blue.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                          color: AppColors.blue.withOpacity(0.3)),
+                          color: AppColors.blue.withOpacity(0.25)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.auto_awesome,
-                            color: AppColors.blue, size: 13),
+                            color: AppColors.blue, size: 12),
                         const SizedBox(width: 6),
                         Text(
                           'Trending in your network',
                           style: GoogleFonts.inter(
-                            fontSize: 12,
+                            fontSize: 11,
                             color: AppColors.blue,
                             fontWeight: FontWeight.w500,
                           ),
@@ -164,25 +172,31 @@ class _PostCardState extends State<PostCard> {
                 ],
                 const SizedBox(height: 12),
 
-                // Actions
+                // Divider
+                Container(
+                  height: 0.5,
+                  color: AppColors.borderSubtle,
+                ),
+                const SizedBox(height: 10),
+
+                // Actions row
                 Row(
                   children: [
                     _action(
                       icon: _liked
                           ? Icons.favorite_rounded
                           : Icons.favorite_border_rounded,
-                      label: _formatCount(
-                          widget.likes + (_liked ? 1 : 0)),
+                      label: _formatCount(widget.likes + (_liked ? 1 : 0)),
                       color: _liked ? AppColors.alert : AppColors.textMuted,
                       onTap: () => setState(() => _liked = !_liked),
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 18),
                     _action(
                       icon: Icons.chat_bubble_outline_rounded,
                       label: _formatCount(widget.comments),
                       onTap: () {},
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 18),
                     _action(
                       icon: Icons.reply_rounded,
                       label: _formatCount(widget.shares),
@@ -197,18 +211,19 @@ class _PostCardState extends State<PostCard> {
                       color: _saved ? AppColors.gold : AppColors.textMuted,
                       onTap: () => setState(() => _saved = !_saved),
                     ),
+                    const SizedBox(width: 4),
                     _action(
-                      icon: Icons.monetization_on_outlined,
+                      icon: Icons.toll_rounded,
                       label: '',
                       color: AppColors.emerald,
                       onTap: () {},
                     ),
                   ],
                 ),
+                const SizedBox(height: 10),
               ],
             ),
           ),
-          const Divider(height: 1, thickness: 0.5),
         ],
       ),
     );
@@ -218,10 +233,12 @@ class _PostCardState extends State<PostCard> {
     return Container(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          colors: [AppColors.gold, Color(0xFFFF6B00)],
+        gradient: LinearGradient(
+          colors: [AppColors.gold, Color(0xFFE07800)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
       ),
       child: Center(
@@ -230,7 +247,7 @@ class _PostCardState extends State<PostCard> {
           height: 36,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.bgElevated,
+            color: AppColors.bgCard,
           ),
           child: Center(
             child: Text(
@@ -256,15 +273,17 @@ class _PostCardState extends State<PostCard> {
     return GestureDetector(
       onTap: onTap,
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 20, color: color),
+          Icon(icon, size: 19, color: color),
           if (label.isNotEmpty) ...[
-            const SizedBox(width: 4),
+            const SizedBox(width: 5),
             Text(
               label,
               style: GoogleFonts.inter(
-                fontSize: 13,
+                fontSize: 12,
                 color: AppColors.textMuted,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
