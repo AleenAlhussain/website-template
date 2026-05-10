@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'screens/splash_screen.dart';
 import 'utils/app_theme.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,22 +15,24 @@ void main() {
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Color(0xFF0D0D0D),
+      systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
-  runApp(const MyFriendApp());
+  runApp(const MFMyFriendApp());
 }
 
-class MyFriendApp extends StatelessWidget {
-  const MyFriendApp({super.key});
+class MFMyFriendApp extends StatelessWidget {
+  const MFMyFriendApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MyFriend',
+      title: 'MF-MYFRIEND',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.darkTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.dark,
       home: const SplashScreen(),
     );
   }

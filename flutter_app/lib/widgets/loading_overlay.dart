@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../utils/app_theme.dart';
+import '../utils/app_colors.dart';
 
 class LoadingOverlay extends StatelessWidget {
   final double progress;
@@ -15,37 +15,39 @@ class LoadingOverlay extends StatelessWidget {
           opacity: progress < 0.1 ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 300),
           child: Container(
-            color: Colors.white,
+            color: AppColors.bgBase,
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    width: 72,
+                    height: 72,
                     decoration: BoxDecoration(
-                      color: Colors.white,
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primary.withOpacity(0.15),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                        ),
-                      ],
+                      color: AppColors.bgCard,
+                      border: Border.all(
+                          color: AppColors.borderSubtle, width: 1),
                     ),
-                    child: const Icon(
-                      Icons.people_alt_rounded,
-                      size: 40,
-                      color: AppTheme.primary,
+                    child: const Center(
+                      child: Text(
+                        'MF',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.gold,
+                          letterSpacing: 1,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   const SizedBox(
-                    width: 32,
-                    height: 32,
+                    width: 28,
+                    height: 28,
                     child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.gold),
                     ),
                   ),
                 ],

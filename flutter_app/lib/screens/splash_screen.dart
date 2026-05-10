@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/app_colors.dart';
 import '../utils/constants.dart';
-import '../utils/app_theme.dart';
-import 'webview_screen.dart';
+import 'onboarding/onboarding_screen.dart';
+import 'auth/login_screen.dart';
+import 'main/main_screen.dart';
 import 'no_connection_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -14,81 +17,86 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late AnimationController _logoController;
-  late AnimationController _textController;
-  late AnimationController _progressController;
+  late final AnimationController _logoCtrl;
+  late final AnimationController _textCtrl;
+  late final AnimationController _ringCtrl;
 
-  late Animation<double> _logoScale;
-  late Animation<double> _logoOpacity;
-  late Animation<double> _textOpacity;
-  late Animation<Offset> _textSlide;
-  late Animation<double> _progressValue;
+  late final Animation<double> _logoScale;
+  late final Animation<double> _logoOpacity;
+  late final Animation<double> _textOpacity;
+  late final Animation<Offset> _textSlide;
+  late final Animation<double> _ring;
 
   @override
   void initState() {
     super.initState();
-    _initAnimations();
-    _startSequence();
-  }
-
-  void _initAnimations() {
-    _logoController = AnimationController(
+    _logoCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    _textController = AnimationController(
+    _textCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    _progressController = AnimationController(
+    _ringCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    );
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
 
-    _logoScale = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
+    _logoScale = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(parent: _logoCtrl, curve: Curves.elasticOut),
     );
     _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: const Interval(0, 0.5)),
+      CurvedAnimation(parent: _logoCtrl, curve: const Interval(0, 0.4)),
     );
     _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _textController, curve: Curves.easeIn),
+      CurvedAnimation(parent: _textCtrl, curve: Curves.easeIn),
     );
     _textSlide = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+      begin: const Offset(0, 0.4),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _textController, curve: Curves.easeOut),
-    );
-    _progressValue = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _progressController, curve: Curves.easeInOut),
-    );
+    ).animate(CurvedAnimation(parent: _textCtrl, curve: Curves.easeOutCubic));
+    _ring = Tween<double>(begin: 0.0, end: 1.0).animate(_ringCtrl);
+
+    _run();
   }
 
-  Future<void> _startSequence() async {
+  Future<void> _run() async {
     await Future.delayed(const Duration(milliseconds: 300));
-    _logoController.forward();
-    await Future.delayed(const Duration(milliseconds: 500));
-    _textController.forward();
-    _progressController.forward();
+    _logoCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 600));
+    _textCtrl.forward();
     await Future.delayed(AppConstants.splashDuration);
     _navigate();
   }
 
   Future<void> _navigate() async {
     final connectivity = await Connectivity().checkConnectivity();
-    final hasConnection = !connectivity.contains(ConnectivityResult.none);
+    if (connectivity.contains(ConnectivityResult.none)) {
+      _go(const NoConnectionScreen());
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final onboarded = prefs.getBool(AppConstants.keyOnboarded) ?? false;
+    final loggedIn = prefs.getBool(AppConstants.keyLoggedIn) ?? false;
 
+    if (!mounted) return;
+    if (!onboarded) {
+      _go(const OnboardingScreen());
+    } else if (!loggedIn) {
+      _go(const LoginScreen());
+    } else {
+      _go(const MainScreen());
+    }
+  }
+
+  void _go(Widget screen) {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, animation, __) => hasConnection
-            ? const WebViewScreen()
-            : const NoConnectionScreen(),
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
+        pageBuilder: (_, a, __) => screen,
+        transitionsBuilder: (_, a, __, child) =>
+            FadeTransition(opacity: a, child: child),
         transitionDuration: const Duration(milliseconds: 500),
       ),
     );
@@ -96,141 +104,136 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _logoController.dispose();
-    _textController.dispose();
-    _progressController.dispose();
+    _logoCtrl.dispose();
+    _textCtrl.dispose();
+    _ringCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: AppTheme.gradientColors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AnimatedBuilder(
-                        animation: _logoController,
-                        builder: (_, __) => Opacity(
-                          opacity: _logoOpacity.value,
-                          child: Transform.scale(
-                            scale: _logoScale.value,
-                            child: _buildLogo(),
-                          ),
+      backgroundColor: AppColors.bgBase,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Animated logo
+                    AnimatedBuilder(
+                      animation: _logoCtrl,
+                      builder: (_, __) => Opacity(
+                        opacity: _logoOpacity.value,
+                        child: Transform.scale(
+                          scale: _logoScale.value,
+                          child: _buildLogo(),
                         ),
                       ),
-                      const SizedBox(height: 28),
-                      SlideTransition(
-                        position: _textSlide,
-                        child: FadeTransition(
-                          opacity: _textOpacity,
-                          child: _buildTextContent(),
+                    ),
+                    const SizedBox(height: 32),
+                    // App name + tagline
+                    SlideTransition(
+                      position: _textSlide,
+                      child: FadeTransition(
+                        opacity: _textOpacity,
+                        child: Column(
+                          children: [
+                            const Text(
+                              'MF-MYFRIEND',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              AppConstants.appTagline,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textMuted,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Loading ring
+            Padding(
+              padding: const EdgeInsets.only(bottom: 48),
+              child: AnimatedBuilder(
+                animation: _ring,
+                builder: (_, __) => SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    value: null,
+                    strokeWidth: 3,
+                    color: AppColors.gold,
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 48, vertical: 40),
-                child: _buildProgress(),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildLogo() {
-    return Container(
-      width: 110,
-      height: 110,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Icon(
-          Icons.people_alt_rounded,
-          size: 58,
-          color: AppTheme.primary,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextContent() {
-    return Column(
+    return Stack(
+      alignment: Alignment.center,
       children: [
-        Text(
-          AppConstants.appName,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 36,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.2,
+        // Outer glow
+        Container(
+          width: 116,
+          height: 116,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const SweepGradient(
+              colors: [AppColors.gold, Color(0xFFFF6B00), AppColors.gold],
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Connect. Share. Discover.',
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.85),
-            fontSize: 15,
-            fontWeight: FontWeight.w400,
-            letterSpacing: 0.5,
+        // Dark ring gap
+        Container(
+          width: 110,
+          height: 110,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.bgBase,
+          ),
+        ),
+        // Inner circle
+        Container(
+          width: 96,
+          height: 96,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.bgCard,
+          ),
+          child: const Center(
+            child: Text(
+              'MF',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                color: AppColors.gold,
+                letterSpacing: 2,
+              ),
+            ),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildProgress() {
-    return AnimatedBuilder(
-      animation: _progressController,
-      builder: (_, __) => Column(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: _progressValue.value,
-              minHeight: 4,
-              backgroundColor: Colors.white.withOpacity(0.25),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Loading...',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

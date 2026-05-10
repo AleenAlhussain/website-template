@@ -1,14 +1,23 @@
 class AppConstants {
-  static const String appName = 'MyFriend';
+  static const String appName = 'MF-MYFRIEND';
+  static const String appTagline = 'Connect. Earn. Evolve.';
   static const String baseUrl = 'https://mf-myfriend.online/';
 
+  // Tab URLs
+  static const String homeUrl = baseUrl;
+  static const String exploreUrl = '${baseUrl}explore';
+  static const String notificationsUrl = '${baseUrl}notifications';
+  static const String profileUrl = '${baseUrl}profile';
+  static const String messagesUrl = '${baseUrl}messages';
+
+  // Auth
+  static const String keyOnboarded = 'mf_onboarded';
+  static const String keyLoggedIn = 'mf_logged_in';
+
+  // UI
   static const String noConnectionTitle = 'No Internet Connection';
   static const String noConnectionMessage =
-      'Please check your internet connection and try again.';
-  static const String errorTitle = 'Page Load Error';
-  static const String errorMessage =
-      'Failed to load the page. Please try again.';
+      'Please check your connection and try again.';
 
-  static const Duration splashDuration = Duration(seconds: 3);
-  static const Duration connectionTimeout = Duration(seconds: 15);
+  static const Duration splashDuration = Duration(milliseconds: 2800);
 }
