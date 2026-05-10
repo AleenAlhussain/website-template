@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/auth_service.dart';
+import '../../services/api_client.dart';
 import '../../utils/app_colors.dart';
-import '../../utils/constants.dart';
 import '../../widgets/gold_button.dart';
 import '../../widgets/mf_text_field.dart';
 import '../main/main_screen.dart';
@@ -21,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _loading = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -31,26 +32,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (!mounted) return;
-
-    // Simulate OTP flow
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => OtpScreen(
-          contact: _emailCtrl.text,
-          onVerified: _finishLogin,
-        ),
-      ),
-    );
-    setState(() => _loading = false);
+    setState(() { _loading = true; _error = null; });
+    try {
+      await AuthService.instance.login(
+        email: _emailCtrl.text.trim(),
+        password: _passCtrl.text,
+      );
+      if (!mounted) return;
+      _goHome();
+    } on ApiException catch (e) {
+      setState(() { _error = e.message; _loading = false; });
+    } catch (_) {
+      setState(() { _error = 'Unexpected error. Try again.'; _loading = false; });
+    }
   }
 
   Future<void> _finishLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(AppConstants.keyLoggedIn, true);
     if (!mounted) return;
+    _goHome();
+  }
+
+  void _goHome() {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MainScreen()),
       (_) => false,
@@ -111,6 +113,32 @@ class _LoginScreenState extends State<LoginScreen> {
                   validator: (v) =>
                       v == null || v.length < 6 ? 'Min 6 characters' : null,
                 ),
+                if (_error != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.alert.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: AppColors.alert.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline,
+                            color: AppColors.alert, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _error!,
+                            style: GoogleFonts.inter(
+                                fontSize: 13, color: AppColors.alert),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerRight,

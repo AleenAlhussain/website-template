@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../services/auth_service.dart';
+import '../../services/api_client.dart';
 import '../../utils/app_colors.dart';
 import '../../widgets/gold_button.dart';
 
@@ -58,13 +60,24 @@ class _OtpScreenState extends State<OtpScreen> {
     setState(() {});
   }
 
+  String? _error;
+
   Future<void> _verify() async {
     if (!_complete) return;
-    setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-    setState(() => _loading = false);
-    widget.onVerified();
+    setState(() { _loading = true; _error = null; });
+    final code = _controllers.map((c) => c.text).join();
+    try {
+      await AuthService.instance.verifyOtp(
+        contact: widget.contact,
+        code: code,
+      );
+      if (!mounted) return;
+      widget.onVerified();
+    } on ApiException catch (e) {
+      setState(() { _error = e.message; _loading = false; });
+    } catch (_) {
+      setState(() { _error = 'Verification failed. Try again.'; _loading = false; });
+    }
   }
 
   @override
