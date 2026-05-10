@@ -39,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen>
       '@layla_m',
       'L',
       '2h',
-      'Just discovered an amazing new DeFi protocol that's changing how we think about yield farming 🚀 The APY is insane and the team is solid.',
+      "Just discovered an amazing new DeFi protocol that's changing how we think about yield farming 🚀 The APY is insane and the team is solid.",
       2100,
       340,
       89,
