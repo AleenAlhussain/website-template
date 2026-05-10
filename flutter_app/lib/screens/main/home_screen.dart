@@ -104,7 +104,119 @@ class _HomeScreenState extends State<HomeScreen>
     super.build(context);
     return Scaffold(
       backgroundColor: AppColors.bgBase,
+      // Always show the top bar — SliverAppBar handles it in native mode,
+      // a regular AppBar handles it in WebView mode.
+      appBar: _useNative ? null : _buildWebAppBar(),
       body: _useNative ? _nativeFeed() : _webViewFeed(),
+    );
+  }
+
+  PreferredSizeWidget _buildWebAppBar() {
+    return AppBar(
+      backgroundColor: AppColors.bgBase,
+      elevation: 0,
+      titleSpacing: 16,
+      title: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.bgCard,
+              border: Border.all(
+                  color: AppColors.gold.withOpacity(0.4), width: 1.5),
+            ),
+            child: const Center(
+              child: Text(
+                'MF',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.gold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'MF-MYFRIEND',
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        _togglePill(),
+        Stack(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_none_rounded,
+                  color: AppColors.textPrimary, size: 22),
+              onPressed: () {},
+            ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.alert,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 4),
+      ],
+    );
+  }
+
+  Widget _togglePill() {
+    return GestureDetector(
+      onTap: () => setState(() => _useNative = !_useNative),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: _useNative
+              ? AppColors.blue.withOpacity(0.15)
+              : AppColors.gold.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: _useNative
+                ? AppColors.blue.withOpacity(0.4)
+                : AppColors.gold.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _useNative ? Icons.auto_awesome_rounded : Icons.language_rounded,
+              size: 14,
+              color: _useNative ? AppColors.blue : AppColors.gold,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              _useNative ? 'AI Feed' : 'Website',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: _useNative ? AppColors.blue : AppColors.gold,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -151,48 +263,7 @@ class _HomeScreenState extends State<HomeScreen>
             ],
           ),
           actions: [
-            // Web / AI Feed toggle
-            GestureDetector(
-              onTap: () => setState(() => _useNative = !_useNative),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.only(right: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: _useNative
-                      ? AppColors.blue.withOpacity(0.15)
-                      : AppColors.gold.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: _useNative
-                        ? AppColors.blue.withOpacity(0.4)
-                        : AppColors.gold.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _useNative
-                          ? Icons.auto_awesome_rounded
-                          : Icons.language_rounded,
-                      size: 14,
-                      color: _useNative ? AppColors.blue : AppColors.gold,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      _useNative ? 'AI Feed' : 'Website',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _useNative ? AppColors.blue : AppColors.gold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _togglePill(),
             Stack(
               children: [
                 IconButton(
