@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_colors.dart';
@@ -77,6 +78,14 @@ class _SplashScreenState extends State<SplashScreen>
       return;
     }
     final prefs = await SharedPreferences.getInstance();
+
+    // In debug builds, always reset onboarding so it can be re-tested.
+    // Remove this block (or set to false) for production releases.
+    if (kDebugMode) {
+      await prefs.remove(AppConstants.keyOnboarded);
+      await prefs.remove(AppConstants.keyLoggedIn);
+    }
+
     final onboarded = prefs.getBool(AppConstants.keyOnboarded) ?? false;
     final loggedIn = prefs.getBool(AppConstants.keyLoggedIn) ?? false;
 
