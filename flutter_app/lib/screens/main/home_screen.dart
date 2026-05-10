@@ -282,20 +282,31 @@ class _HomeScreenState extends State<HomeScreen>
           delegate: SliverChildBuilderDelegate(
             (_, i) {
               if (i >= _demoPosts.length) return null;
-              final p = _demoPosts[i];
+              final (
+                name,
+                handle,
+                initial,
+                time,
+                content,
+                likes,
+                comments,
+                shares,
+                isVerified,
+                isTrending,
+              ) = _demoPosts[i];
               return Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: PostCard(
-                  authorName: p.$1,
-                  authorHandle: p.$2,
-                  authorInitial: p.$3,
-                  timeAgo: p.$4,
-                  content: p.$5,
-                  likes: p.$6,
-                  comments: p.$7,
-                  shares: p.$8,
-                  isVerified: p.$9,
-                  isTrending: p.$10,
+                  authorName: name,
+                  authorHandle: handle,
+                  authorInitial: initial,
+                  timeAgo: time,
+                  content: content,
+                  likes: likes,
+                  comments: comments,
+                  shares: shares,
+                  isVerified: isVerified,
+                  isTrending: isTrending,
                 ),
               );
             },
