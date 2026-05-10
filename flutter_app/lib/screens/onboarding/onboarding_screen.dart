@@ -206,15 +206,15 @@ class _SlidePage extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: _tagColor(slide.tag).withOpacity(0.3),
+                            color: _tagColorByTag(slide.tag).withOpacity(0.3),
                             width: 2,
                           ),
-                          color: _tagColor(slide.tag).withOpacity(0.08),
+                          color: _tagColorByTag(slide.tag).withOpacity(0.08),
                         ),
                         child: Icon(
                           slide.icon,
                           size: 52,
-                          color: _tagColor(slide.tag),
+                          color: _tagColorByTag(slide.tag),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -223,9 +223,9 @@ class _SlidePage extends StatelessWidget {
                             horizontal: 12, vertical: 5),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(6),
-                          color: _tagColor(slide.tag).withOpacity(0.1),
+                          color: _tagColorByTag(slide.tag).withOpacity(0.1),
                           border: Border.all(
-                            color: _tagColor(slide.tag).withOpacity(0.3),
+                            color: _tagColorByTag(slide.tag).withOpacity(0.3),
                           ),
                         ),
                         child: Text(
@@ -233,7 +233,7 @@ class _SlidePage extends StatelessWidget {
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: _tagColor(slide.tag),
+                            color: _tagColorByTag(slide.tag),
                             letterSpacing: 1.5,
                           ),
                         ),
@@ -278,8 +278,6 @@ class _SlidePage extends StatelessWidget {
       ),
     );
   }
-
-  Color _tagColor(_Slide s) => _tagColorByTag(s.tag);
 
   Color _tagColorByTag(String tag) {
     switch (tag) {
