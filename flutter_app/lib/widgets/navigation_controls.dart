@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../utils/app_theme.dart';
+import '../utils/app_colors.dart';
 
 class NavigationControls extends StatelessWidget {
   final bool canGoBack;
@@ -23,12 +23,10 @@ class NavigationControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       height: 56,
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+      decoration: const BoxDecoration(
+        color: AppColors.bgBase,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.12),
@@ -99,7 +97,7 @@ class _NavButton extends StatelessWidget {
               icon,
               size: 22,
               color: isActive
-                  ? AppTheme.primary
+                  ? AppColors.gold
                   : isEnabled
                       ? Theme.of(context).iconTheme.color
                       : Colors.grey[400],

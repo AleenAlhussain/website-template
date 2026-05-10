@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import '../utils/app_colors.dart';
 import '../utils/constants.dart';
-import '../utils/app_theme.dart';
-import '../widgets/navigation_controls.dart';
 import '../widgets/loading_overlay.dart';
 import 'no_connection_screen.dart';
 
+/// Standalone full-screen WebView — used for deep-link situations.
 class WebViewScreen extends StatefulWidget {
-  const WebViewScreen({super.key});
+  final String? url;
+  const WebViewScreen({super.key, this.url});
 
   @override
   State<WebViewScreen> createState() => _WebViewScreenState();
@@ -21,19 +22,17 @@ class _WebViewScreenState extends State<WebViewScreen>
   late final WebViewController _controller;
   bool _isLoading = true;
   bool _hasError = false;
-  String _currentUrl = AppConstants.baseUrl;
+  String _currentUrl = '';
   bool _canGoBack = false;
   bool _canGoForward = false;
-  double _loadingProgress = 0.0;
-  StreamSubscription? _connectivitySubscription;
-  bool _showControls = true;
-  double _lastScrollOffset = 0;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
+  double _progress = 0;
+  StreamSubscription? _connectivitySub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _currentUrl = widget.url ?? AppConstants.baseUrl;
     _initWebView();
     _listenConnectivity();
   }
@@ -41,87 +40,44 @@ class _WebViewScreenState extends State<WebViewScreen>
   void _initWebView() {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.white)
+      ..setBackgroundColor(AppColors.bgBase)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onProgress: (progress) {
-            if (mounted) {
-              setState(() => _loadingProgress = progress / 100.0);
-            }
+          onProgress: (p) {
+            if (mounted) setState(() => _progress = p / 100.0);
           },
           onPageStarted: (url) {
-            if (mounted) {
+            if (mounted)
               setState(() {
                 _isLoading = true;
                 _hasError = false;
                 _currentUrl = url;
               });
-              _updateNavState();
-            }
+            _updateNav();
           },
           onPageFinished: (url) {
-            if (mounted) {
+            if (mounted)
               setState(() {
                 _isLoading = false;
                 _currentUrl = url;
               });
-              _updateNavState();
-            }
+            _updateNav();
           },
-          onWebResourceError: (error) {
-            if (error.isForMainFrame == true && mounted) {
+          onWebResourceError: (err) {
+            if (err.isForMainFrame == true && mounted)
               setState(() {
                 _isLoading = false;
                 _hasError = true;
               });
-            }
           },
-          onNavigationRequest: (request) {
-            final uri = Uri.parse(request.url);
-            final base = Uri.parse(AppConstants.baseUrl);
-            if (uri.host == base.host || uri.host.endsWith('.${base.host}')) {
-              return NavigationDecision.navigate;
-            }
-            // Allow social login redirects and common CDNs
-            final allowedHosts = [
-              'google.com', 'facebook.com', 'twitter.com',
-              'accounts.google.com', 'connect.facebook.net',
-            ];
-            for (final host in allowedHosts) {
-              if (uri.host.endsWith(host)) {
-                return NavigationDecision.navigate;
-              }
-            }
-            return NavigationDecision.navigate;
-          },
+          onNavigationRequest: (_) => NavigationDecision.navigate,
         ),
       )
-      ..addJavaScriptChannel(
-        'FlutterApp',
-        onMessageReceived: (_) {},
-      )
-      ..loadRequest(Uri.parse(AppConstants.baseUrl));
-
-    _injectScrollListener();
-  }
-
-  void _injectScrollListener() {
-    _controller.runJavaScript('''
-      var lastScrollTop = 0;
-      window.addEventListener('scroll', function() {
-        var st = window.pageYOffset || document.documentElement.scrollTop;
-        if (Math.abs(st - lastScrollTop) > 30) {
-          if (typeof FlutterApp !== 'undefined') {
-            FlutterApp.postMessage(st > lastScrollTop ? 'scrollDown' : 'scrollUp');
-          }
-          lastScrollTop = st <= 0 ? 0 : st;
-        }
-      }, false);
-    ''');
+      ..loadRequest(Uri.parse(_currentUrl));
   }
 
   void _listenConnectivity() {
-    _connectivitySubscription = Connectivity()
+    _connectivitySub = Connectivity()
         .onConnectivityChanged
         .listen((List<ConnectivityResult> results) {
       if (results.contains(ConnectivityResult.none) && mounted) {
@@ -132,63 +88,26 @@ class _WebViewScreenState extends State<WebViewScreen>
     });
   }
 
-  Future<void> _updateNavState() async {
+  Future<void> _updateNav() async {
     final back = await _controller.canGoBack();
-    final forward = await _controller.canGoForward();
-    if (mounted) {
-      setState(() {
-        _canGoBack = back;
-        _canGoForward = forward;
-      });
-    }
-  }
-
-  Future<void> _refresh() async {
-    setState(() {
-      _isLoading = true;
-      _hasError = false;
+    final fwd = await _controller.canGoForward();
+    if (mounted) setState(() {
+      _canGoBack = back;
+      _canGoForward = fwd;
     });
-    await _controller.reload();
   }
 
-  Future<bool> _onWillPop() async {
+  Future<bool> _onBack() async {
     if (await _controller.canGoBack()) {
       await _controller.goBack();
       return false;
     }
-    return _showExitDialog();
-  }
-
-  Future<bool> _showExitDialog() async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (_) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text('Exit App'),
-            content: const Text('Are you sure you want to exit?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context, true);
-                  SystemNavigator.pop();
-                },
-                child: const Text('Exit'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    return true;
   }
 
   @override
   void dispose() {
-    _connectivitySubscription?.cancel();
+    _connectivitySub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -198,81 +117,71 @@ class _WebViewScreenState extends State<WebViewScreen>
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
-        if (!didPop) await _onWillPop();
+        if (!didPop) {
+          final shouldPop = await _onBack();
+          if (shouldPop && mounted) Navigator.of(context).pop();
+        }
       },
       child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: Colors.white,
-        appBar: _buildAppBar(),
-        drawer: _buildDrawer(),
+        backgroundColor: AppColors.bgBase,
+        appBar: _appBar(),
         body: Stack(
           children: [
-            _hasError ? _buildErrorView() : _buildWebView(),
-            if (_isLoading) LoadingOverlay(progress: _loadingProgress),
-            if (_loadingProgress > 0 && _loadingProgress < 1)
+            _hasError ? _errorView() : WebViewWidget(controller: _controller),
+            if (_progress > 0 && _progress < 1)
               Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
+                top: 0, left: 0, right: 0,
                 child: LinearProgressIndicator(
-                  value: _loadingProgress,
+                  value: _progress,
                   minHeight: 3,
                   backgroundColor: Colors.transparent,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppTheme.accent,
-                  ),
+                  valueColor:
+                      const AlwaysStoppedAnimation<Color>(AppColors.gold),
                 ),
               ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: AnimatedSlide(
-                offset: _showControls ? Offset.zero : const Offset(0, 1),
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-                child: NavigationControls(
-                  canGoBack: _canGoBack,
-                  canGoForward: _canGoForward,
-                  isLoading: _isLoading,
-                  onBack: () => _controller.goBack(),
-                  onForward: () => _controller.goForward(),
-                  onRefresh: _refresh,
-                  onHome: () => _controller.loadRequest(
-                    Uri.parse(AppConstants.baseUrl),
-                  ),
-                ),
-              ),
-            ),
+            LoadingOverlay(progress: _progress),
           ],
         ),
+        bottomNavigationBar: _navBar(),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _appBar() {
     return AppBar(
+      backgroundColor: AppColors.bgBase,
       leading: IconButton(
-        icon: const Icon(Icons.menu_rounded),
-        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+        onPressed: () => Navigator.maybePop(context),
       ),
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            width: 24,
+            height: 24,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
+              shape: BoxShape.circle,
+              color: AppColors.bgCard,
+              border: Border.all(
+                  color: AppColors.gold.withOpacity(0.4), width: 1),
             ),
-            child: const Icon(
-              Icons.people_alt_rounded,
-              color: Colors.white,
-              size: 20,
+            child: const Center(
+              child: Text(
+                'MF',
+                style: TextStyle(
+                  fontSize: 7,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.gold,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 8),
-          const Text(AppConstants.appName),
+          const Text(
+            AppConstants.appName,
+            style: TextStyle(fontSize: 15),
+          ),
         ],
       ),
       actions: [
@@ -281,200 +190,84 @@ class _WebViewScreenState extends State<WebViewScreen>
             padding: EdgeInsets.only(right: 8),
             child: Center(
               child: SizedBox(
-                width: 20,
-                height: 20,
+                width: 18,
+                height: 18,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: AppColors.gold,
                 ),
               ),
             ),
           )
         else
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: _refresh,
-            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh_rounded, size: 20),
+            onPressed: () => _controller.reload(),
           ),
         IconButton(
-          icon: const Icon(Icons.more_vert_rounded),
-          onPressed: _showOptionsMenu,
-          tooltip: 'More options',
+          icon: const Icon(Icons.more_vert_rounded, size: 20),
+          onPressed: _showOptions,
         ),
       ],
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: AppTheme.gradientColors,
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
+    );
+  }
+
+  Widget _navBar() {
+    return Container(
+      height: 56,
+      decoration: const BoxDecoration(
+        color: AppColors.bgBase,
+        border: Border(top: BorderSide(color: AppColors.borderSubtle, width: 0.5)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _navBtn(Icons.arrow_back_ios_rounded, _canGoBack,
+                () => _controller.goBack()),
+            _navBtn(Icons.arrow_forward_ios_rounded, _canGoForward,
+                () => _controller.goForward()),
+            _navBtn(
+              _isLoading ? Icons.close_rounded : Icons.refresh_rounded,
+              true,
+              () => _isLoading
+                  ? _controller.loadRequest(Uri.parse(_currentUrl))
+                  : _controller.reload(),
+              active: _isLoading,
+            ),
+            _navBtn(Icons.home_rounded, true,
+                () => _controller.loadRequest(Uri.parse(AppConstants.baseUrl))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navBtn(IconData icon, bool enabled, VoidCallback onTap,
+      {bool active = false}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+          child: Icon(
+            icon,
+            size: 20,
+            color: active
+                ? AppColors.gold
+                : enabled
+                    ? AppColors.textSecondary
+                    : AppColors.textMuted.withOpacity(0.4),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDrawer() {
-    return Drawer(
-      child: Column(
-        children: [
-          Container(
-            height: 200,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: AppTheme.gradientColors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: const SafeArea(
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.people_alt_rounded,
-                      color: Colors.white,
-                      size: 56,
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      AppConstants.appName,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Connect. Share. Discover.',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _drawerItem(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _controller.loadRequest(Uri.parse(AppConstants.baseUrl));
-                  },
-                ),
-                _drawerItem(
-                  icon: Icons.person_rounded,
-                  label: 'Profile',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _controller.loadRequest(
-                        Uri.parse('${AppConstants.baseUrl}profile'));
-                  },
-                ),
-                _drawerItem(
-                  icon: Icons.notifications_rounded,
-                  label: 'Notifications',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _controller.loadRequest(
-                        Uri.parse('${AppConstants.baseUrl}notifications'));
-                  },
-                ),
-                _drawerItem(
-                  icon: Icons.message_rounded,
-                  label: 'Messages',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _controller.loadRequest(
-                        Uri.parse('${AppConstants.baseUrl}messages'));
-                  },
-                ),
-                _drawerItem(
-                  icon: Icons.group_rounded,
-                  label: 'Groups',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _controller.loadRequest(
-                        Uri.parse('${AppConstants.baseUrl}groups'));
-                  },
-                ),
-                _drawerItem(
-                  icon: Icons.pages_rounded,
-                  label: 'Pages',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _controller.loadRequest(
-                        Uri.parse('${AppConstants.baseUrl}pages'));
-                  },
-                ),
-                const Divider(),
-                _drawerItem(
-                  icon: Icons.settings_rounded,
-                  label: 'Settings',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _controller.loadRequest(
-                        Uri.parse('${AppConstants.baseUrl}settings'));
-                  },
-                ),
-                _drawerItem(
-                  icon: Icons.refresh_rounded,
-                  label: 'Refresh Page',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _refresh();
-                  },
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              AppConstants.baseUrl,
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: 11,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _drawerItem({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: AppTheme.primary),
-      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-      onTap: onTap,
-      horizontalTitleGap: 8,
-    );
-  }
-
-  Widget _buildWebView() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 56),
-      child: WebViewWidget(controller: _controller),
-    );
-  }
-
-  Widget _buildErrorView() {
+  Widget _errorView() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -482,47 +275,37 @@ class _WebViewScreenState extends State<WebViewScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
                 shape: BoxShape.circle,
+                color: AppColors.alert.withOpacity(0.1),
               ),
-              child: Icon(
-                Icons.wifi_off_rounded,
-                size: 56,
-                color: Colors.red.shade400,
-              ),
+              child: const Icon(Icons.wifi_off_rounded,
+                  size: 48, color: AppColors.alert),
             ),
             const SizedBox(height: 24),
-            Text(
-              AppConstants.errorTitle,
-              style: const TextStyle(
+            const Text(
+              'Page Load Error',
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              AppConstants.errorMessage,
+            const SizedBox(height: 10),
+            const Text(
+              'Could not load the page. Please try again.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 15,
-                height: 1.5,
-              ),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
             ElevatedButton.icon(
-              onPressed: _refresh,
-              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () => _controller.reload(),
+              icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('Try Again'),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => _controller.loadRequest(
-                Uri.parse(AppConstants.baseUrl),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(160, 48),
               ),
-              child: const Text('Go to Home'),
             ),
           ],
         ),
@@ -530,9 +313,10 @@ class _WebViewScreenState extends State<WebViewScreen>
     );
   }
 
-  void _showOptionsMenu() {
+  void _showOptions() {
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppColors.bgElevated,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -541,16 +325,17 @@ class _WebViewScreenState extends State<WebViewScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40,
+              width: 36,
               height: 4,
               margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppColors.textMuted,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.home_rounded),
+              leading: const Icon(Icons.home_rounded,
+                  color: AppColors.textSecondary),
               title: const Text('Go to Home'),
               onTap: () {
                 Navigator.pop(context);
@@ -558,24 +343,28 @@ class _WebViewScreenState extends State<WebViewScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.refresh_rounded),
-              title: const Text('Refresh Page'),
+              leading: const Icon(Icons.refresh_rounded,
+                  color: AppColors.textSecondary),
+              title: const Text('Refresh'),
               onTap: () {
                 Navigator.pop(context);
-                _refresh();
+                _controller.reload();
               },
             ),
             ListTile(
-              leading: const Icon(Icons.copy_rounded),
+              leading: const Icon(Icons.copy_rounded,
+                  color: AppColors.textSecondary),
               title: const Text('Copy URL'),
               onTap: () {
                 Navigator.pop(context);
                 Clipboard.setData(ClipboardData(text: _currentUrl));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('URL copied to clipboard'),
+                  SnackBar(
+                    content: const Text('URL copied'),
+                    backgroundColor: AppColors.bgElevated,
                     behavior: SnackBarBehavior.floating,
-                    duration: Duration(seconds: 2),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                 );
               },
