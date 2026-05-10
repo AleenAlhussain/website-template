@@ -95,8 +95,27 @@ class _HomeScreenState extends State<HomeScreen>
         onPageFinished: (_) {
           if (mounted) setState(() => _isLoading = false);
         },
+        onWebResourceError: (error) {
+          // ERR_CACHE_MISS (-6): retry with explicit no-cache headers
+          if (mounted && (error.errorCode == -6 ||
+              (error.description ?? '').contains('ERR_CACHE_MISS'))) {
+            _controller.loadRequest(
+              Uri.parse(AppConstants.homeUrl),
+              headers: const {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+              },
+            );
+          }
+        },
       ))
-      ..loadRequest(Uri.parse(AppConstants.homeUrl));
+      ..loadRequest(
+        Uri.parse(AppConstants.homeUrl),
+        headers: const {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      );
   }
 
   @override
