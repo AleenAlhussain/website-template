@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen>
     ('Rania A.', null, false, true),
   ];
 
-  final _demoPosts = [
+  final List<(String, String, String, String, String, int, int, int, bool, bool)> _demoPosts = [
     (
       'Layla Mohammed',
       '@layla_m',
