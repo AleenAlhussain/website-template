@@ -85,6 +85,13 @@ class _HomeScreenState extends State<HomeScreen>
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(AppColors.bgBase)
+      // Mobile Chrome user agent — ensures the website serves its mobile
+      // layout instead of the desktop version
+      ..setUserAgent(
+        'Mozilla/5.0 (Linux; Android 13; Mobile) '
+        'AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/120.0.0.0 Mobile Safari/537.36',
+      )
       ..setNavigationDelegate(NavigationDelegate(
         onProgress: (p) {
           if (mounted) setState(() => _progress = p / 100.0);
